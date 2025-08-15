@@ -1,12 +1,12 @@
 {
   "name": "mcp-weather",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Simple MCP weather server and connect it to a host, Claude for Desktop",
   "license": "ISC",
   "author": "James Martineau",
   "type": "module",
   "bin": {
-    "weather": "./build/index.js"
+    "mcp-weather": "./build/index.js"
   },
   "scripts": {
     "build": "tsc && chmod 755 build/index.js"

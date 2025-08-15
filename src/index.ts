@@ -1,7 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import { AlertFeature, AlertsResponse, ForecastPeriod, ForecastResponse, PointsResponse } from "./types.js";
 
 const NWS_API_BASE = "https://api.weather.gov";
 const USER_AGENT = "weather-app/1.0";
@@ -9,14 +8,14 @@ const USER_AGENT = "weather-app/1.0";
 // Create server instance
 const server = new McpServer({
   name: "weather",
-  version: "1.0.0",
+  version: "1.0.1",
   capabilities: {
     resources: {},
     tools: {},
   },
 });
 
-// Helper function for making National Weather Service API requests
+// Helper function for making NWS API requests
 async function makeNWSRequest<T>(url: string): Promise<T | null> {
   const headers = {
     "User-Agent": USER_AGENT,
@@ -35,6 +34,16 @@ async function makeNWSRequest<T>(url: string): Promise<T | null> {
   }
 }
 
+interface AlertFeature {
+  properties: {
+    event?: string;
+    areaDesc?: string;
+    severity?: string;
+    status?: string;
+    headline?: string;
+  };
+}
+
 // Format alert data
 function formatAlert(feature: AlertFeature): string {
   const props = feature.properties;
@@ -46,6 +55,31 @@ function formatAlert(feature: AlertFeature): string {
     `Headline: ${props.headline || "No headline"}`,
     "---",
   ].join("\n");
+}
+
+interface ForecastPeriod {
+  name?: string;
+  temperature?: number;
+  temperatureUnit?: string;
+  windSpeed?: string;
+  windDirection?: string;
+  shortForecast?: string;
+}
+
+interface AlertsResponse {
+  features: AlertFeature[];
+}
+
+interface PointsResponse {
+  properties: {
+    forecast?: string;
+  };
+}
+
+interface ForecastResponse {
+  properties: {
+    periods: ForecastPeriod[];
+  };
 }
 
 // Register weather tools
@@ -84,7 +118,9 @@ server.tool(
     }
 
     const formattedAlerts = features.map(formatAlert);
-    const alertsText = `Active alerts for ${stateCode}:\n\n${formattedAlerts.join("\n")}`;
+    const alertsText = `Active alerts for ${stateCode}:\n\n${formattedAlerts.join(
+      "\n"
+    )}`;
 
     return {
       content: [
@@ -94,7 +130,7 @@ server.tool(
         },
       ],
     };
-  },
+  }
 );
 
 server.tool(
@@ -110,7 +146,9 @@ server.tool(
   },
   async ({ latitude, longitude }) => {
     // Get grid point data
-    const pointsUrl = `${NWS_API_BASE}/points/${latitude.toFixed(4)},${longitude.toFixed(4)}`;
+    const pointsUrl = `${NWS_API_BASE}/points/${latitude.toFixed(
+      4
+    )},${longitude.toFixed(4)}`;
     const pointsData = await makeNWSRequest<PointsResponse>(pointsUrl);
 
     if (!pointsData) {
@@ -165,14 +203,18 @@ server.tool(
     const formattedForecast = periods.map((period: ForecastPeriod) =>
       [
         `${period.name || "Unknown"}:`,
-        `Temperature: ${period.temperature || "Unknown"}°${period.temperatureUnit || "F"}`,
+        `Temperature: ${period.temperature || "Unknown"}°${
+          period.temperatureUnit || "F"
+        }`,
         `Wind: ${period.windSpeed || "Unknown"} ${period.windDirection || ""}`,
         `${period.shortForecast || "No forecast available"}`,
         "---",
-      ].join("\n"),
+      ].join("\n")
     );
 
-    const forecastText = `Forecast for ${latitude}, ${longitude}:\n\n${formattedForecast.join("\n")}`;
+    const forecastText = `Forecast for ${latitude}, ${longitude}:\n\n${formattedForecast.join(
+      "\n"
+    )}`;
 
     return {
       content: [
@@ -182,7 +224,7 @@ server.tool(
         },
       ],
     };
-  },
+  }
 );
 
 async function main() {
